@@ -221,12 +221,12 @@ def _numbers_in(rows: list[dict]) -> list[float]:
     return found
 
 
-def check_grounding(answer: str, rows: list[dict]) -> tuple[GuardrailEvent, list[str]]:
+def check_grounding(answer: str, rows: list[dict], context: str = "") -> tuple[GuardrailEvent, list[str]]:
     """Every airport code and number >= 10 in the answer must come from the rows.
 
     Numbers may be rounded by the LLM, so a 1% tolerance is accepted.
     """
-    haystack = json.dumps(rows, default=str)
+    haystack = json.dumps(rows, default=str) + " " + context.upper()
     numbers = _numbers_in(rows)
     ungrounded = [
         code for code in re.findall(r"\b[A-Z]{3}\b", answer)
