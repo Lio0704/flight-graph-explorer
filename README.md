@@ -48,7 +48,7 @@ make seed analytics train
 make run
 ```
 
-Docker image: `docker pull OWNER/flight-graph-api:latest` → https://hub.docker.com/r/OWNER/flight-graph-api
+Docker image: `docker pull lio0704/flight-graph-api:latest` → https://hub.docker.com/r/lio0704/flight-graph-api
 
 ---
 
