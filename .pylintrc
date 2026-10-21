@@ -1,0 +1,166 @@
+[MASTER]
+# Course-provided template (bdallard/.pylintrc-template), kept as-is except where noted.
+extension-pkg-whitelist=
+ignore=CVS,.venv
+ignore-patterns=
+jobs=0
+limit-inference-results=100
+load-plugins=
+persistent=yes
+unsafe-load-any-extension=no
+
+
+[MESSAGES CONTROL]
+confidence=
+disable=missing-module-docstring,
+        missing-class-docstring,
+        missing-function-docstring,
+        too-few-public-methods,
+        logging-fstring-interpolation,
+        duplicate-code,
+        no-member,
+        cell-var-from-loop,
+        undefined-loop-variable,
+        attribute-defined-outside-init,
+        protected-access,
+        wrong-import-order,
+enable=c-extension-no-member, useless-suppression
+
+
+[REPORTS]
+evaluation=max(0, 0 if fatal else 10.0 - ((float(5 * error + warning + refactor + convention) / statement) * 10))
+output-format=colorized
+reports=no
+score=yes
+
+
+[REFACTORING]
+max-nested-blocks=5
+never-returning-functions=sys.exit
+
+
+[LOGGING]
+logging-format-style=new
+logging-modules=logging
+
+
+[MISCELLANEOUS]
+notes=FIXME,
+      XXX,
+      TODO
+
+
+[TYPECHECK]
+contextmanager-decorators=contextlib.contextmanager
+generated-members=
+ignore-none=yes
+ignore-on-opaque-inference=yes
+ignored-classes=optparse.Values,thread._local,_thread._local
+missing-member-hint=yes
+missing-member-hint-distance=1
+missing-member-max-choices=1
+signature-mutators=
+
+
+[VARIABLES]
+additional-builtins=
+allow-global-unused-variables=yes
+callbacks=cb_,
+          _cb
+dummy-variables-rgx=_+$|(_[a-zA-Z0-9_]*[a-zA-Z0-9]+?$)|dummy|^ignored_|^unused_
+ignored-argument-names=_.*|^ignored_|^unused_
+init-import=no
+redefining-builtins-modules=six.moves,past.builtins,future.builtins,builtins,io
+
+
+[FORMAT]
+expected-line-ending-format=LF
+ignore-long-lines=^\s*(# )?<?https?://\S+>?$
+indent-after-paren=4
+indent-string='    '
+max-line-length=120
+max-module-lines=1000
+single-line-class-stmt=no
+single-line-if-stmt=no
+
+
+[SIMILARITIES]
+ignore-comments=yes
+ignore-docstrings=yes
+ignore-imports=yes
+min-similarity-lines=4
+
+
+[BASIC]
+argument-naming-style=snake_case
+attr-rgx=(([a-z][a-z0-9_]{2,30})|(_[a-z0-9_]*)|(id))$
+bad-names=foo,
+          bar,
+          baz,
+          toto,
+          tutu,
+          tata
+class-attribute-rgx=([A-Za-z_][A-Za-z0-9_]{2,30}|(__.*__)|(id))$
+class-naming-style=PascalCase
+const-naming-style=UPPER_CASE
+docstring-min-length=-1
+function-naming-style=snake_case
+good-names=i,
+           j,
+           k,
+           ex,
+           Run,
+           x,
+           y,
+           x0, x1, y0, y1, w, h,
+           v,
+           df,
+           _
+include-naming-hint=no
+inlinevar-naming-style=snake_case
+method-naming-style=snake_case
+module-naming-style=snake_case
+name-group=
+no-docstring-rgx=^_
+property-classes=abc.abstractproperty
+variable-naming-style=snake_case
+
+
+[STRING]
+check-str-concat-over-line-jumps=yes
+
+
+[IMPORTS]
+allow-any-import-level=tensorflow, keras
+allow-wildcard-with-all=no
+analyse-fallback-blocks=no
+deprecated-modules=optparse,tkinter.tix
+known-third-party=enchant
+preferred-modules=
+
+
+[CLASSES]
+defining-attr-methods=__init__,
+                      __new__,
+                      setUp,
+                      __post_init__
+exclude-protected=_asdict,
+                  _fields,
+                  _replace,
+                  _source,
+                  _make
+valid-classmethod-first-arg=cls
+valid-metaclass-classmethod-first-arg=cls
+
+
+[DESIGN]
+max-args=5
+max-attributes=10
+max-bool-expr=5
+max-branches=12
+max-locals=15
+max-parents=7
+max-public-methods=20
+max-returns=6
+max-statements=50
+min-public-methods=1

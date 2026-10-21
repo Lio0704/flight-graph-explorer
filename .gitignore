@@ -1,0 +1,28 @@
+# secrets
+.env
+*.env
+!.env.example
+
+# python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+.pytest_cache/
+.coverage
+coverage.xml
+htmlcov/
+*.egg-info/
+
+# notebooks
+.ipynb_checkpoints/
+
+# generated artefacts
+models/*.json
+!models/.gitkeep
+neo4j_data/
+
+# editors / OS
+.vscode/
+.idea/
+.DS_Store
