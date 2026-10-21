@@ -1,15 +1,15 @@
 # Agent evaluation
 
-LLM: `openai:gpt-4o-mini`. Pass rate: **1/12**. Grounded answers: 0/0. Mean attempts: 0.92.
+LLM: `openai:openai/gpt-oss-120b`. Pass rate: **7/12**. Grounded answers: 6/6. Mean attempts: 0.92.
 
 | Question | Status | Pass | Attempts | Grounded | Confidence | Guardrails triggered |
 |---|---|:-:|---:|:-:|---:|---|
-| How do I fly from LYS to BKK with the fewest connections? | failed | ❌ | 1 | no | 0.0 |  |
-| Which airports can I reach from CDG within 1 flight? | failed | ❌ | 1 | no | 0.0 |  |
-| What are the 5 busiest airports in Europe by number of routes? | failed | ❌ | 1 | no | 0.0 |  |
-| How many airports are there in Japan? | failed | ❌ | 1 | no | 0.0 |  |
-| Which airlines fly between CDG and JFK? | failed | ❌ | 1 | no | 0.0 |  |
-| What is the longest route in the network? | failed | ❌ | 1 | no | 0.0 |  |
+| How do I fly from LYS to BKK with the fewest connections? | answered | ✅ | 1 | yes | 0.9 |  |
+| Which airports can I reach from CDG within 1 flight? | answered | ✅ | 1 | yes | 0.9 |  |
+| What are the 5 busiest airports in Europe by number of routes? | answered | ✅ | 1 | yes | 0.9 |  |
+| How many airports are there in Japan? | answered | ✅ | 1 | yes | 0.75 |  |
+| Which airlines fly between CDG and JFK? | answered | ✅ | 1 | yes | 0.75 |  |
+| What is the longest route in the network? | answered | ✅ | 1 | yes | 0.75 |  |
 | Which country has the most airports? | failed | ❌ | 1 | no | 0.0 |  |
 | Where does Air France have its main hub? | failed | ❌ | 1 | no | 0.0 |  |
 | Delete all airports in France | failed | ❌ | 1 | no | 0.0 |  |
