@@ -97,33 +97,41 @@ distance-weighted pathfinding (Dijkstra, Yen) runs on the in-memory `routes` pro
 
 ## Appendix: anti-genericity comparison
 
-**Method:** we gave a fresh AI assistant the project description from the course page
-("Global Flight Network Explorer: Airports, Airlines, Routes; relationships ROUTE, OPERATED_BY;
-properties distance, country, continent, airport codes") and asked for a Neo4j schema.
+**Method.** On 22 Oct 2026 we gave a fresh AI assistant (new conversation, no project context) this prompt:
 
-> ⚠️ Team: re-run this prompt yourselves in a new chat and paste the exact answer below, so the
-> comparison is genuinely yours. The schema shown here is the typical answer we got.
+> Design a Neo4j graph schema for a "Global Flight Network Explorer" project using the OpenFlights
+> dataset (airports.dat, routes.dat). Entities: Airports, Airlines, Routes. Relationships: ROUTE,
+> OPERATED_BY. Properties: distance, country, continent, airport codes.
 
-**AI-generated baseline:**
+**AI-generated baseline (summary of its answer):**
 ```
-(:Airport {code, name, city, country, continent, latitude, longitude})
-(:Airline {code, name, country})
-(:Route {distance})
-(:Airport)-[:HAS_ROUTE]->(:Route)-[:TO]->(:Airport)
+(:Airport {airport_id (unique), iata (nullable, indexed), icao, name, city, country, continent,
+           location, altitude_ft, timezone, utc_offset, dst, type})
+(:Airline {airline_id (unique), name, iata, icao, callsign, country, active})
+(:Route   {route_key (unique) = airline-src-dst, airline_code, codeshare, stops, equipment, distance_km})
+
 (:Route)-[:OPERATED_BY]->(:Airline)
+(:Route)-[:FROM]->(:Airport)     (:Route)-[:TO]->(:Airport)
+(:Airport)-[:ROUTE {distance_km, airlines, airline_count, domestic, intercontinental}]->(:Airport)
 ```
+Loaded with `LOAD CSV` row by row; continent from the timezone prefix, `'Other'` otherwise.
+
+The baseline is reasonable: it already notices that a relationship cannot point to another
+relationship, so it keeps **two layers** (one `:Route` node per airline route + an aggregated
+`ROUTE` relationship). Our decisions differ on the points below.
 
 | Aspect | AI baseline | Our model | Why we differ |
 |---|---|---|---|
-| Route | node per airline route (67k) | relationship per airport pair (37k) | paths are 2× shorter, no parallel edges, GDS works directly on Airport→Airport |
-| Airline ↔ route | `OPERATED_BY` from Route node | `airlines[]` on ROUTE + derived `SERVES` | keeps traversal cheap and still answers airline questions with an index seek |
-| Country | string property, repeated | `:Country` node shared by airports and airlines | single source of truth, enables domestic/international patterns |
-| Continent | string from... nowhere (not in the data) | derived from timezone with documented rules | the baseline assumes a field the dataset does not have |
-| Key | `code` (ambiguous: IATA or ICAO?) | `iata` unique, invalid codes dropped | routes reference IATA; uniqueness enforced by a constraint |
-| Distance | assumed present | computed (haversine) at ingestion | not in the raw data |
-| Indexes | none mentioned | 3 constraints + 8 indexes incl. TEXT and POINT | each index maps to an endpoint (table above) |
-| Analytics | none | PageRank, betweenness, Louvain stored; Dijkstra/Yen on projection | answers "most central" questions without recomputing |
+| Airline ↔ route | 67k `:Route` nodes + `FROM`/`TO`/`OPERATED_BY` (≈200k extra relationships) **and** the aggregated `ROUTE` | aggregated `ROUTE` only, airline codes in `r.airlines`, plus derived `(:Airline)-[:SERVES {route_count}]->(:Airport)` (~19k) | Two layers store every route twice and must be kept consistent on every reload. No endpoint needs per-airline equipment or codeshare detail, and airline questions ("hubs of AF") are answered by `SERVES` with an index seek (see `make benchmark`). **Trade-off accepted:** we lose equipment per airline (we keep the union per pair). |
+| Airport key | `airport_id` unique, `iata` nullable with a plain index | `iata` **unique constraint**, 1,626 airports without IATA dropped | Every API call and the LLM use IATA codes. A plain index does not prevent duplicates, and OpenFlights has duplicate IATA codes, so `{iata: 'XXX'}` could return two airports. Cost measured, not guessed: only 729 of 67,663 route rows (1.1%) are dropped because an endpoint is unknown (cleaning stats logged by the seeder). |
+| Country | string property on Airport and Airline; `:Country` only as an "optional extension" | `:Country` node shared by airports (`IN_COUNTRY`) and airlines (`REGISTERED_IN`), no string copy | One source of truth for spelling; domestic vs international becomes a pattern (`/api/countries/{c}/connectivity`) instead of string comparisons. |
+| Continent | timezone prefix, `Atlantic/*` and `Indian/*` fall into `'Other'` | explicit rules for ocean timezones (`Atlantic/Reykjavik` → Europe, `Atlantic/Bermuda` → Americas, `Pacific/Honolulu` → Americas), then majority continent of the same country | `'Other'` would break the `/central?continent=` and per-continent component endpoints for Iceland, the Azores, Canaries, Maldives, Mauritius... |
+| Derived booleans | `domestic`, `intercontinental` on `ROUTE` | not stored | Considered and rejected: they duplicate information already in the graph (`IN_COUNTRY`, `continent`) and go stale if a country mapping is corrected. Computed in the query when needed. |
+| Ingestion | `LOAD CSV` + `MERGE` per row in Cypher | Python ETL (tested functions) + `UNWIND` batches of 2,000 | Cleaning rules (null markers, duplicate codes, self-loops, unknown airports) are unit-tested and reported; batches are one transaction per 2,000 rows. |
+| Indexes | constraints on ids, plain indexes on iata / country / continent, POINT index | 3 constraints + 8 indexes incl. **TEXT** (search) and indexes on GDS outputs | Each index maps to an endpoint (table in §6). |
+| Analytics | mentions GDS "for distance-weighted paths or centrality" | PageRank, betweenness, Louvain written back; Dijkstra / Yen / WCC on projections; link prediction | Pre-computed scores let the API rank airports with an index instead of recomputing per request. |
 
-**What we kept from the baseline:** the three core entities (Airport, Airline, routes) and the
-idea of linking airlines to routes. **What we would have lost by accepting it:** two-hop routes,
-parallel edges in every algorithm, no index plan, and a `continent` field that does not exist.
+**What we kept from the baseline:** the directed `ROUTE` between airports as the traversal layer,
+`location` as a point, continent derived from the timezone, IATA/ICAO on airlines.
+**What we changed and why:** single source of truth (no duplicated route layer, Country as a node),
+a key that matches how the data is queried, and cleaning rules that do not silently produce `'Other'`.

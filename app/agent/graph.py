@@ -182,7 +182,7 @@ class GraphAgent:
                 answer = self._llm.complete(prompts.ANSWER_SYSTEM, user).strip()
             except LLMError as exc:
                 answer = f"(LLM summary unavailable: {exc}) See verified rows."
-            event, _ = check_grounding(answer, rows)
+            event, _ = check_grounding(answer, rows, state["question"])
             grounded, events = event.passed, [event]
         confidence = 0.9 if state.get("tool") else 0.75
         confidence -= 0.15 * (state.get("attempts", 1) - 1)

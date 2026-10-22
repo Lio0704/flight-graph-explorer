@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import json
 import logging
+import os
 import time
 from pathlib import Path
 
@@ -19,6 +20,8 @@ from app.database import Neo4jClient
 
 logger = logging.getLogger("eval")
 OUTPUT = Path(__file__).resolve().parent.parent / "docs" / "agent_eval.md"
+# Pause between questions so free-tier rate limits (tokens per minute) are not hit.
+DELAY_S = float(os.getenv("EVAL_DELAY_S", "8"))
 
 CASES = [
     # question, accepted statuses, value expected somewhere in verified rows (or None)
@@ -84,6 +87,8 @@ def main() -> None:
         for question, statuses, expected in CASES:
             results.append(run_case(agent, question, statuses, expected))
             logger.info(f"{'PASS' if results[-1]['passed'] else 'FAIL'} {question}")
+            if settings.llm_provider.lower() != "mock":
+                time.sleep(DELAY_S)
     finally:
         client.close()
     OUTPUT.write_text(render(llm.name, results), encoding="utf-8")

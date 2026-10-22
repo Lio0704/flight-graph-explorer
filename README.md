@@ -22,7 +22,7 @@ Science and a guarded natural-language agent.
 ## Quick start
 
 ```bash
-git clone https://github.com/Lio0704/flight-graph-explorer.git && cd REPO
+git clone https://github.com/Lio0704/flight-graph-explorer.git && cd flight-graph-explorer
 cp .env.example .env          # set NEO4J_PASSWORD, API_KEY and your LLM settings
 make docker-run               # neo4j + seeder + api + nginx
 ```
@@ -48,7 +48,7 @@ make seed analytics train
 make run
 ```
 
-Docker image: `docker pull OWNER/flight-graph-api:latest` → https://hub.docker.com/r/OWNER/flight-graph-api
+Docker image: `docker pull lio0704/flight-graph-api:latest` → https://hub.docker.com/r/lio0704/flight-graph-api
 
 ---
 
@@ -242,19 +242,16 @@ rejected one. `make notebook`.
 
 ---
 
-## Team contributions
+## Team & workflow
 
-| Member | Role | Commits | % | Merged PRs |
-|---|---|---:|---:|---:|
-| Member 1 (lead) | infra: Docker, nginx, Makefile, CI | | | |
-| Member 2 | ingestion, schema, indexes, benchmarks | | | |
-| Member 3 | API: airports, routes, network | | | |
-| Member 4 | GDS + link prediction | | | |
-| Member 5 | LangGraph agent + guardrails | | | |
+Individual project (approved by the instructor): **Lio Wang** ([@Lio0704](https://github.com/Lio0704)),
+all modules.
 
-Fill with `git shortlog -sn` before the defense. Workflow: `main` protected, feature branches,
-PRs with at least one review (template in `.github/pull_request_template.md`), conventional commits
-(`feat:`, `fix:`, `test:`, `docs:`, `refactor:`, `chore:`).
+Git workflow: `main` as the stable branch, one feature branch per module merged through a Pull
+Request (`feat/ingestion`, `feat/api`, `feat/gds-ml`, `feat/agent`, `feat/docker-ci`, `docs/final`),
+conventional commits (`feat:`, `fix:`, `test:`, `docs:`, `refactor:`, `chore:`), CI on every PR.
+See [closed pull requests](https://github.com/Lio0704/flight-graph-explorer/pulls?q=is%3Apr+is%3Aclosed)
+and `git log --oneline --graph`.
 
 ## Disclaimer
 
