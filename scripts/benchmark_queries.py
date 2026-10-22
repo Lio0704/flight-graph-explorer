@@ -42,8 +42,10 @@ CASES = [
     },
     {
         "name": "Reachability within 3 hops: variable-length path vs ANY SHORTEST",
-        "why": ("[:ROUTE*1..3] enumerates every path (explodes around hubs); "
-                "ANY SHORTEST is a BFS, one path per airport."),
+        "why": ("Hypothesis disproved. With count(DISTINCT dst) the planner already uses a pruning "
+                "breadth-first VarLengthExpand, so the 'naive' query is the fast one. ANY SHORTEST "
+                "computes one shortest path per destination: slower, but it returns the hop level, "
+                "which the endpoint needs."),
         "naive": cypher.REACHABLE_NAIVE_3,
         "optimised": cypher.REACHABLE_BY_HOPS[3],
         "params": {"iata": "LYS", "sample": 5},

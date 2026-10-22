@@ -79,9 +79,9 @@ LIMIT $limit
 RETURN {_AIRPORT_PROJECTION}, distance_km
 """
 
-# Reachability: GQL quantified path + ANY SHORTEST = breadth-first search.
-# Each destination is reached once (by its shortest path), unlike the naive
-# `[:ROUTE*1..k]` which enumerates every path and explodes around hubs.
+# Reachability: GQL quantified path + ANY SHORTEST, one shortest path per destination,
+# so we get each airport's exact hop level. See docs/benchmarks.md: for a plain count, the
+# planner's pruning VarLengthExpand on `[:ROUTE*1..k]` + DISTINCT is faster.
 _REACHABLE_TEMPLATE = """
 MATCH (src:Airport {{iata: $iata}})
 MATCH p = ANY SHORTEST (src)-[:ROUTE]->{{1,{hops}}}(dst:Airport)
