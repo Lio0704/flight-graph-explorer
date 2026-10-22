@@ -52,7 +52,8 @@ STRING_LITERAL = re.compile(r"'(?:[^'\\]|\\.)*'|\"(?:[^\"\\]|\\.)*\"")
 COMMENT = re.compile(r"//[^\n]*|/\*.*?\*/", re.DOTALL)
 FUNCTION_NAMESPACES = {"point", "date", "datetime", "duration", "localdatetime", "localtime", "time", "gds", "apoc"}
 
-GROUNDING_STOPWORDS = {"THE", "AND", "NOT", "FOR", "ARE", "YES", "API", "ONE", "TWO", "BUT", "HAS", "ALL", "ANY"}
+GROUNDING_STOPWORDS = {"THE", "AND", "NOT", "FOR", "ARE", "YES", "API", "ONE", "TWO", "BUT", "HAS", "ALL", "ANY",
+                       "USA", "UAE", "GDS", "SQL", "LLM", "IATA"}
 
 
 @dataclass

@@ -177,8 +177,8 @@ def test_openai_client_handles_http_errors(monkeypatch):
 
 def test_openai_client_parses_response(monkeypatch):
     class FakeResponse:
-        def raise_for_status(self):
-            """No error."""
+        status_code = 200
+        headers: dict = {}
 
         def json(self):
             """Chat-completions shaped payload."""
@@ -197,3 +197,43 @@ def test_openai_client_parses_response(monkeypatch):
     assert text == '{"action": "refuse"}'
     assert captured["payload"]["response_format"] == {"type": "json_object"}
     assert captured["headers"]["Authorization"] == "Bearer secret"
+
+
+class _StatusResponse:
+    """Minimal httpx.Response stand-in."""
+
+    def __init__(self, status_code, body, headers=None):
+        self.status_code = status_code
+        self._body = body
+        self.headers = headers or {}
+        self.text = json.dumps(body)
+
+    def json(self):
+        """Return the body."""
+        return self._body
+
+
+def test_openai_client_retries_on_rate_limit(monkeypatch):
+    responses = [
+        _StatusResponse(429, {"error": {"message": "rate limit"}}, {"retry-after": "0"}),
+        _StatusResponse(200, {"choices": [{"message": {"content": "ok"}}]}),
+    ]
+    sleeps = []
+    monkeypatch.setattr("app.agent.llm.httpx.post", lambda *args, **kwargs: responses.pop(0))
+    monkeypatch.setattr("app.agent.llm.time.sleep", sleeps.append)
+    assert OpenAICompatibleLLM(get_settings()).complete("s", "u") == "ok"
+    assert sleeps == [0.5]
+
+
+def test_openai_client_reports_provider_error(monkeypatch):
+    response = _StatusResponse(404, {"error": {"message": "The model does not exist"}})
+    monkeypatch.setattr("app.agent.llm.httpx.post", lambda *args, **kwargs: response)
+    with pytest.raises(LLMError, match="404 The model does not exist"):
+        OpenAICompatibleLLM(get_settings()).complete("s", "u")
+
+
+def test_openai_client_gives_up_after_retries(monkeypatch):
+    monkeypatch.setattr("app.agent.llm.httpx.post", lambda *args, **kwargs: _StatusResponse(503, "busy"))
+    monkeypatch.setattr("app.agent.llm.time.sleep", lambda _: None)
+    with pytest.raises(LLMError, match="HTTP 503"):
+        OpenAICompatibleLLM(get_settings()).complete("s", "u")

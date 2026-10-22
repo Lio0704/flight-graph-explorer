@@ -11,6 +11,7 @@ from __future__ import annotations
 
 import json
 import re
+import time
 from typing import Protocol
 
 import httpx
@@ -18,8 +19,30 @@ import httpx
 from app.config import Settings
 
 
+RETRYABLE_STATUS = {429, 500, 502, 503, 504}
+MAX_RETRIES = 3
+MAX_BACKOFF_S = 20.0
+
+
 class LLMError(Exception):
     """The LLM provider failed or returned something unusable."""
+
+
+def _retry_delay(response: httpx.Response, attempt: int) -> float:
+    """Seconds to wait before retrying: the provider's Retry-After header, else exponential backoff."""
+    try:
+        delay = float(response.headers.get("retry-after", ""))
+    except ValueError:
+        delay = 2.0 * 2 ** attempt
+    return min(max(delay, 0.5), MAX_BACKOFF_S)
+
+
+def _error_detail(response: httpx.Response) -> str:
+    """Short provider error message (e.g. 'model not found', 'rate limit reached')."""
+    try:
+        return str(response.json().get("error", {}).get("message", ""))[:200]
+    except (ValueError, AttributeError):
+        return response.text[:200]
 
 
 class LLMClient(Protocol):
@@ -49,12 +72,22 @@ class OpenAICompatibleLLM:
             payload["response_format"] = {"type": "json_object"}
         headers = {"Authorization": f"Bearer {self._settings.llm_api_key}"} if self._settings.llm_api_key else {}
         url = self._settings.llm_base_url.rstrip("/") + "/chat/completions"
-        try:
-            response = httpx.post(url, json=payload, headers=headers, timeout=self._settings.llm_timeout_s)
-            response.raise_for_status()
-            return response.json()["choices"][0]["message"]["content"] or ""
-        except (httpx.HTTPError, KeyError, IndexError, ValueError) as exc:
-            raise LLMError(f"LLM call failed: {exc}") from exc
+        for attempt in range(MAX_RETRIES + 1):
+            try:
+                response = httpx.post(url, json=payload, headers=headers, timeout=self._settings.llm_timeout_s)
+            except httpx.HTTPError as exc:
+                raise LLMError(f"LLM call failed: {exc}") from exc
+            if response.status_code in RETRYABLE_STATUS and attempt < MAX_RETRIES:
+                # Rate limits (429) are common on free tiers: wait and retry instead of failing.
+                time.sleep(_retry_delay(response, attempt))
+                continue
+            if response.status_code >= 400:
+                raise LLMError(f"LLM call failed: HTTP {response.status_code} {_error_detail(response)}")
+            try:
+                return response.json()["choices"][0]["message"]["content"] or ""
+            except (KeyError, IndexError, ValueError, TypeError) as exc:
+                raise LLMError(f"LLM returned an unexpected payload: {exc}") from exc
+        raise LLMError("LLM call failed after retries")  # pragma: no cover
 
 
 class MockLLM:
