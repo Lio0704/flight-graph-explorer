@@ -200,8 +200,10 @@ Evaluation (`make eval-agent`): **[docs/agent_eval.md](docs/agent_eval.md)**.
 
 `make benchmark` PROFILEs naive vs optimised versions of 5 queries and writes
 **[docs/benchmarks.md](docs/benchmarks.md)** (db hits, latency, plan operators): label + unique
-index, TEXT index vs `toLower()`, SERVES vs list scan, `ANY SHORTEST` vs variable-length
-enumeration, POINT index vs computed distance. All queries are parameterised, paginated or limited,
+index, TEXT index vs `toLower()`, SERVES vs list scan, POINT index vs computed distance (gains of
+x100 to x4,000 in db hits), and one case where **our hypothesis was wrong**: for reachability, Neo4j's
+pruning variable-length expand beat our `ANY SHORTEST` rewrite (kept because it returns hop levels,
+see the modeling doc). All queries are parameterised, paginated or limited,
 and avoid Cartesian products (separate `MATCH` on indexed keys).
 
 ---

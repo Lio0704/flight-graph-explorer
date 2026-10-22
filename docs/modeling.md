@@ -87,9 +87,16 @@ distance-weighted pathfinding (Dijkstra, Yen) runs on the in-memory `routes` pro
 
 ### 7. Query complexity as the graph grows
 * Lookups by IATA: index seek, O(log n).
-* `ANY SHORTEST` reachability: BFS, each airport visited once → O(V + E) worst case for the
-  explored region. The naive `[:ROUTE*1..k]` enumerates **paths**: O(d^k) with average degree
-  d ≈ 6 but hub degrees > 200, which is why the benchmark shows orders of magnitude more db hits.
+* Reachability within k hops. Enumerating **paths** with `[:ROUTE*1..k]` is O(d^k): average degree
+  d ≈ 6 but hubs have > 200 neighbours. **Our benchmark disproved our first assumption** about the
+  fix, though: when the query only asks for `count(DISTINCT dst)`, Neo4j's planner already rewrites
+  the variable-length expand into a *pruning* breadth-first expand (`VarLengthExpand(Pruning)`),
+  which visits each airport once. That version was faster (≈35k db hits, 6 ms) than our
+  `ANY SHORTEST` query (≈47k db hits, 237 ms), which finds one shortest path *per destination*.
+  We keep `ANY SHORTEST` in the endpoint because it also returns the exact hop level of each
+  airport (the pruning form only returns the set of reachable airports), and 237 ms is acceptable
+  for k ≤ 4. Lesson: measure with PROFILE instead of assuming. The path explosion is real only when
+  paths are returned or aggregated without `DISTINCT`.
 * `allShortestPaths` is bounded to 5 hops and limited to `$limit` results.
 * All variable-length patterns (API and LLM) are bounded; the agent guardrail rejects unbounded ones.
 
