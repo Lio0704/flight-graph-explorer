@@ -100,6 +100,42 @@ distance-weighted pathfinding (Dijkstra, Yen) runs on the in-memory `routes` pro
 * `allShortestPaths` is bounded to 5 hops and limited to `$limit` results.
 * All variable-length patterns (API and LLM) are bounded; the agent guardrail rejects unbounded ones.
 
+### 8. Why a graph and not a relational database?
+
+The reference question for this subject: *"Which airports are reachable from CDG within four connections?"*
+
+**Relational version** (tables `airports(iata PK)` and `routes(src, dst)` with an index on `routes(src)`):
+```sql
+WITH RECURSIVE reach(iata, hops) AS (
+    SELECT dst, 1 FROM routes WHERE src = 'CDG'
+  UNION
+    SELECT r.dst, reach.hops + 1
+    FROM reach JOIN routes r ON r.src = reach.iata
+    WHERE reach.hops < 4
+)
+SELECT iata, MIN(hops) AS hops FROM reach WHERE iata <> 'CDG' GROUP BY iata;
+```
+
+**Graph version** (what `/api/airports/{iata}/reachable` runs):
+```cypher
+MATCH (src:Airport {iata: 'CDG'})
+MATCH p = ANY SHORTEST (src)-[:ROUTE]->{1,4}(dst:Airport)
+RETURN dst.iata, length(p) AS hops
+```
+
+| | Relational (recursive CTE) | Neo4j |
+|---|---|---|
+| One hop | a **join**: B-tree lookup in the `routes` index, O(log E) per airport | follow the airport's own relationship pointers ("index-free adjacency"), O(1) per route |
+| k hops | k self-joins; the work depends on the size of the `routes` table at each level | the work depends only on the part of the graph actually explored, not on the total size |
+| Duplicates | `UNION` only removes identical `(iata, hops)` rows, so an airport reached at hop 2 is expanded again at hops 3 and 4; avoiding that needs extra bookkeeping | `ANY SHORTEST` (or the planner's pruning expand) visits each airport once |
+| Paths | the route itself is lost unless you also accumulate an array of visited codes, and cycles must be blocked by hand | the path `p` is a first-class value; `shortestPath`, Dijkstra and Yen are built in |
+| Expressiveness | about 10 lines, the recursion is easy to get wrong | 2 lines that read like the question |
+
+**Honest caveat:** with 6k airports and 37k routes, PostgreSQL would also answer this in milliseconds.
+The graph's advantage grows with **depth**, **graph size** and **how much the question is about
+paths** (shortest routes, centrality, communities). That is exactly what this project does, which
+is why we chose Neo4j and not a SQL table of routes.
+
 ---
 
 ## Appendix: anti-genericity comparison
