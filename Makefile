@@ -92,7 +92,7 @@ eval-agent:
 	NEO4J_URI=bolt://localhost:7687 $(PY) -m scripts.eval_agent
 
 test:
-	NEO4J_URI=bolt://localhost:7687 $(VENV)/bin/pytest -q --cov=app --cov=scripts --cov-report=term-missing --cov-report=xml
+	NEO4J_URI=bolt://localhost:7687 API_BASE_URL=http://localhost $(VENV)/bin/pytest -q --cov=app --cov=scripts --cov-report=term-missing --cov-report=xml
 
 test-unit:
 	$(VENV)/bin/pytest -q -m "not integration" --cov=app --cov=scripts --cov-report=term-missing

@@ -109,7 +109,8 @@ graph LR
 * **Country** `name` (unique), iso_code
 
 Why a route is a relationship and not a node, why Country is a node but City is not, how continent
-is derived, and the comparison with an AI-generated schema: **[docs/modeling.md](docs/modeling.md)**.
+is derived, **why a graph rather than SQL** (recursive CTE vs Cypher for "reachable within 4
+connections"), and the comparison with an AI-generated schema: **[docs/modeling.md](docs/modeling.md)**.
 Editable diagrams: [docs/diagrams/](docs/diagrams/) (draw.io).
 
 ## Dataset
@@ -159,7 +160,6 @@ curl -X POST localhost/api/agent/ask -H "X-API-Key: $API_KEY" -H "Content-Type: 
      -d '{"question": "How do I get from Lyon to Bangkok with the fewest connections?"}'
 ```
 
-<!-- Screenshots: replace with your own after `make docker-run` -->
 | Swagger | Neo4j Browser | Agent |
 |---|---|---|
 | ![swagger](docs/img/swagger.png) | ![neo4j](docs/img/neo4j-browser.png) | ![agent](docs/img/agent.png) |
